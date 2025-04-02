@@ -101,7 +101,7 @@ function AdminPedidos() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F5C77E]">
         <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
-          <h2 className="text-2xl font-bold text-center text-[#321314] mb-4">Login do Admin</h2>
+          <img src="/logo.png" alt="Logo" className="w-50 mx-auto mb-1" />          
           <input
             type="text"
             placeholder="Usuário"
