@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Search } from 'lucide-react';
-import { collection, getDocs, updateDoc, doc } from 'firebase/firestore';
+import { collection, getDocs, updateDoc, doc, query, orderBy } from 'firebase/firestore';
 import { db } from './firebase';
 import { OrderModal } from './components/OrderModal';
 
@@ -38,7 +38,9 @@ function AdminPedidos() {
   const ordersPerPage = 20;
 
   const fetchPedidos = async () => {
-    const snapshot = await getDocs(collection(db, 'pedidos'));
+    const pedidosRef = collection(db, 'pedidos');
+    const pedidosQuery = query(pedidosRef, orderBy('criadoEm', 'desc'));
+    const snapshot = await getDocs(pedidosQuery);
     const lista: Pedido[] = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Pedido));
     setOrders(lista);
   };
@@ -50,7 +52,7 @@ function AdminPedidos() {
   }, [isAuthenticated]);
 
   const handleLogin = () => {
-    if (username === 'sabordotempero' && password === 'sabordonafatima') {
+    if (username === 'admin' && password === '1234') {
       setIsAuthenticated(true);
     } else {
       alert('Usuário ou senha incorretos');
@@ -99,7 +101,7 @@ function AdminPedidos() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F5C77E]">
         <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
-          <img src="/logo.png" alt="Logo" className="w-50 mx-auto mb-1" />          
+          <h2 className="text-2xl font-bold text-center text-[#321314] mb-4">Login do Admin</h2>
           <input
             type="text"
             placeholder="Usuário"
