@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useMemo } from 'react';
-import { Search } from 'lucide-react';
+import { Search, ClipboardList, Flame, Truck, CheckCircle } from 'lucide-react';
 import { collection, getDocs, updateDoc, doc, query, orderBy } from 'firebase/firestore';
 import { db } from './firebase';
 import { OrderModal } from './components/OrderModal';
@@ -33,6 +33,7 @@ function AdminPedidos() {
   const [orders, setOrders] = useState<Pedido[]>([]);
   const [searchName, setSearchName] = useState('');
   const [searchPhone, setSearchPhone] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedOrder, setSelectedOrder] = useState<Pedido | null>(null);
   const ordersPerPage = 20;
@@ -69,9 +70,10 @@ function AdminPedidos() {
   const filteredOrders = useMemo(() => {
     return orders.filter(order => 
       order.nome.toLowerCase().includes(searchName.toLowerCase()) &&
-      order.telefone.includes(searchPhone)
+      order.telefone.includes(searchPhone) &&
+      (filterStatus ? order.status === filterStatus : true)
     );
-  }, [orders, searchName, searchPhone]);
+  }, [orders, searchName, searchPhone, filterStatus]);
 
   const totalPages = Math.ceil(filteredOrders.length / ordersPerPage);
   const currentOrders = filteredOrders.slice(
@@ -79,7 +81,19 @@ function AdminPedidos() {
     currentPage * ordersPerPage
   );
 
-  const updateOrderStatus = async (orderId: string, newStatus: Pedido['status']) => {
+  const getNextStatus = (status: Pedido['status']): Pedido['status'] => {
+    const sequence: Pedido['status'][] = [
+      'pedido feito',
+      'in preparation',
+      'out for delivery',
+      'delivered'
+    ];
+    const currentIndex = sequence.indexOf(status);
+    return sequence[(currentIndex + 1) % sequence.length];
+  };
+
+  const updateOrderStatus = async (orderId: string, currentStatus: Pedido['status']) => {
+    const newStatus = getNextStatus(currentStatus);
     const orderRef = doc(db, 'pedidos', orderId);
     await updateDoc(orderRef, { status: newStatus });
     setOrders(prev => prev.map(order => 
@@ -97,11 +111,18 @@ function AdminPedidos() {
     }
   };
 
+  const statusIcons = {
+    'pedido feito': <ClipboardList size={20} />,
+    'in preparation': <Flame size={20} />,
+    'out for delivery': <Truck size={20} />,
+    'delivered': <CheckCircle size={20} />
+  };
+
   if (!isAuthenticated) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-[#F5C77E]">
         <div className="bg-white p-6 rounded-lg shadow-lg max-w-sm w-full">
-          <img src="/logo.png" alt="Logo" className="w-50 mx-auto mb-1" />          
+          <img src="/logo.png" alt="Logo" className="w-50 mx-auto mb-4" />
           <input
             type="text"
             placeholder="Usuário"
@@ -175,6 +196,20 @@ function AdminPedidos() {
               />
             </div>
           </div>
+          <div>
+            <label className="block text-[#8C552F] mb-2">Status</label>
+            <select
+              value={filterStatus}
+              onChange={(e) => setFilterStatus(e.target.value)}
+              className="border border-[#8C552F] rounded-lg px-2 py-2"
+            >
+              <option value="">Todos</option>
+              <option value="pedido feito">Pedido Feito</option>
+              <option value="in preparation">Em preparo</option>
+              <option value="out for delivery">Saiu para entrega</option>
+              <option value="delivered">Entregue</option>
+            </select>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -207,16 +242,12 @@ function AdminPedidos() {
                   <td className="px-4 py-2">R$ {order.total.toFixed(2)}</td>
                   <td className="px-4 py-2">{statusTranslations[order.status]}</td>
                   <td className="px-4 py-2">
-                    <select
-                      value={order.status}
-                      onChange={(e) => updateOrderStatus(order.id, e.target.value as Pedido['status'])}
-                      className="border rounded px-2 py-1"
+                    <button
+                      onClick={() => updateOrderStatus(order.id, order.status)}
+                      className="text-[#321314] hover:text-[#F89D16]"
                     >
-                      <option value="pedido feito">Pedido Feito</option>
-                      <option value="in preparation">Em preparo</option>
-                      <option value="out for delivery">Saiu para entrega</option>
-                      <option value="delivered">Entregue</option>
-                    </select>
+                      {statusIcons[order.status]}
+                    </button>
                   </td>
                 </tr>
               ))}
